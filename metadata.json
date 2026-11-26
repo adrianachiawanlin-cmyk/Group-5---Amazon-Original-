@@ -1,0 +1,6 @@
+{
+  "name": "Amazon.sg Storefront",
+  "description": "Online shopping storefront for Singapore featuring electronics, Amazon Fresh groceries, books, toys, and Prime deals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
