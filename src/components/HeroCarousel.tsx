@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { HERO_SLIDES, type CategoryId } from '../data/catalog';
 import { StoreImage } from './StoreImage';
 
 interface HeroCarouselProps {
   onSelectCategory: (category: CategoryId) => void;
+  rightSlot?: ReactNode;
 }
 
-export function HeroCarousel({ onSelectCategory }: HeroCarouselProps) {
+export function HeroCarousel({ onSelectCategory, rightSlot }: HeroCarouselProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -53,7 +54,7 @@ export function HeroCarousel({ onSelectCategory }: HeroCarouselProps) {
               />
               <div className="absolute inset-0 bg-gradient-to-r from-primary/95 via-primary/70 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/35 to-transparent" />
-              <div className="absolute top-12 left-12 md:left-20 max-w-lg flex flex-col gap-gutter-sm text-on-primary pr-12">
+              <div className="absolute top-12 left-12 md:left-20 max-w-md xl:max-w-lg flex flex-col gap-gutter-sm text-on-primary pr-12">
                 <span
                   className={`inline-flex self-start ${slide.badgeClass} font-label text-label-sm px-gutter-sm py-1 rounded-sm`}
                 >
@@ -82,6 +83,13 @@ export function HeroCarousel({ onSelectCategory }: HeroCarouselProps) {
           );
         })}
       </div>
+
+      {/* Top-Right Hero Slot (Desktop) */}
+      {rightSlot && (
+        <div className="hidden lg:block absolute top-6 right-16 z-20 w-[370px] xl:w-[420px]">
+          {rightSlot}
+        </div>
+      )}
 
       {/* Carousel Prev / Next Controls */}
       <button

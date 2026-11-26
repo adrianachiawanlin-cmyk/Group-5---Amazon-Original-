@@ -6,6 +6,11 @@ import { DealsCarousel } from './components/DealsCarousel';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { HeroCarousel } from './components/HeroCarousel';
+import {
+  MoodPromptCard,
+  MoodResultsShelf,
+  type MoodRecommendationItem,
+} from './components/MoodRecommender';
 import { PopularGrid } from './components/PopularGrid';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import {
@@ -62,6 +67,14 @@ export default function App() {
     title: null,
     body: '',
   });
+
+  // Mood Recommender state
+  const [moodInput, setMoodInput] = useState('');
+  const [moodLoading, setMoodLoading] = useState(false);
+  const [moodError, setMoodError] = useState<string | null>(null);
+  const [moodAffirmation, setMoodAffirmation] = useState<string | null>(null);
+  const [moodSummary, setMoodSummary] = useState<string | null>(null);
+  const [moodResults, setMoodResults] = useState<MoodRecommendationItem[]>([]);
 
   useEffect(() => {
     try {
@@ -163,6 +176,58 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSubmitMood = async (moodText: string) => {
+    const trimmed = moodText.trim();
+    if (!trimmed) {
+      setMoodError('Tell us how you are feeling today to see tailored recommendations.');
+      return;
+    }
+    setMoodLoading(true);
+    setMoodError(null);
+
+    try {
+      const res = await fetch('/api/mood-recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mood: trimmed }),
+      });
+
+      const data = (await res.json()) as {
+        affirmation?: string;
+        summary?: string;
+        recommendations?: { productId: string; reason: string }[];
+        error?: string;
+      };
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Could not load mood recommendations.');
+      }
+
+      const mapped = (data.recommendations ?? [])
+        .map((rec) => {
+          const product = PRODUCTS.find((p) => p.id === rec.productId);
+          return product ? { product, reason: rec.reason } : null;
+        })
+        .filter((entry): entry is MoodRecommendationItem => Boolean(entry));
+
+      setMoodAffirmation(data.affirmation ?? null);
+      setMoodSummary(data.summary ?? null);
+      setMoodResults(mapped);
+    } catch (err) {
+      setMoodError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setMoodLoading(false);
+    }
+  };
+
+  const handleClearMood = () => {
+    setMoodInput('');
+    setMoodAffirmation(null);
+    setMoodSummary(null);
+    setMoodResults([]);
+    setMoodError(null);
+  };
+
   const isCatalogView = activeCategory !== null || searchQuery.length > 0;
 
   return (
@@ -199,10 +264,48 @@ export default function App() {
           />
         ) : (
           <>
-            <HeroCarousel onSelectCategory={handleSelectCategory} />
+            <HeroCarousel
+              onSelectCategory={handleSelectCategory}
+              rightSlot={
+                <MoodPromptCard
+                  moodInput={moodInput}
+                  loading={moodLoading}
+                  errorMsg={moodError}
+                  affirmation={moodAffirmation}
+                  hasResults={moodResults.length > 0}
+                  onChangeMood={setMoodInput}
+                  onSubmitMood={(val) => void handleSubmitMood(val)}
+                  onClear={handleClearMood}
+                />
+              }
+            />
 
             {/* Main Grid Container (Overlapping Hero Bottom) */}
             <div className="px-page-margin -mt-36 relative z-20 flex flex-col gap-gutter-lg">
+              {/* Mobile/Tablet fallback placement for MoodPromptCard */}
+              <div className="lg:hidden">
+                <MoodPromptCard
+                  moodInput={moodInput}
+                  loading={moodLoading}
+                  errorMsg={moodError}
+                  affirmation={moodAffirmation}
+                  hasResults={moodResults.length > 0}
+                  onChangeMood={setMoodInput}
+                  onSubmitMood={(val) => void handleSubmitMood(val)}
+                  onClear={handleClearMood}
+                />
+              </div>
+
+              <MoodResultsShelf
+                loading={moodLoading}
+                affirmation={moodAffirmation}
+                summary={moodSummary}
+                results={moodResults}
+                onAddToCart={(product) => handleAddToCart(product, 1)}
+                onOpenProduct={setSelectedProduct}
+                onClear={handleClearMood}
+              />
+
               <TopBentoRow
                 userName={userName}
                 isPrimeMember={isPrimeMember}
